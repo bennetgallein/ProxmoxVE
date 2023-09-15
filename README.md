@@ -3,10 +3,10 @@ ProxmoxVE API Client
 
 This **PHP 8+** library allows you to interact with your Proxmox server via API.
 
-[![Latest Stable Version](https://poser.pugx.org/zzantares/proxmoxve/v/stable.svg)](https://packagist.org/packages/zzantares/proxmoxve)
-[![Total Downloads](https://poser.pugx.org/zzantares/proxmoxve/downloads.svg)](https://packagist.org/packages/zzantares/proxmoxve)
-[![Latest Unstable Version](https://poser.pugx.org/zzantares/proxmoxve/v/unstable.svg)](https://packagist.org/packages/zzantares/proxmoxve)
-[![License](https://poser.pugx.org/zzantares/proxmoxve/license.svg)](https://packagist.org/packages/zzantares/proxmoxve)
+[![Latest Stable Version](https://poser.pugx.org/bennetgallein/proxmoxve/v/stable.svg)](https://packagist.org/packages/bennetgallein/proxmoxve)
+[![Total Downloads](https://poser.pugx.org/bennetgallein/proxmoxve/downloads.svg)](https://packagist.org/packages/bennetgallein/proxmoxve)
+[![Latest Unstable Version](https://poser.pugx.org/bennetgallein/proxmoxve/v/unstable.svg)](https://packagist.org/packages/bennetgallein/proxmoxve)
+[![License](https://poser.pugx.org/bennetgallein/proxmoxve/license.svg)](https://packagist.org/packages/bennetgallein/proxmoxve)
 
 
 Installation
@@ -141,12 +141,6 @@ $credentials = [
 ];
 
 ```
-
-Want to know more nifty tricks?
--------------------------------
-
-Checkout our [wiki](https://github.com/ZzAntares/ProxmoxVE/wiki).
-
 
 Docs
 ----
