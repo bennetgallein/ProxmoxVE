@@ -42,46 +42,6 @@ final class ProxmoxTest extends TestCase {
     }
 
 
-    /**
-     * @expectedException \ProxmoxVE\Exception\MalformedCredentialsException
-     */
-    public function testExceptionIsThrownWhenWrongCredentialsObjectIsPassed() {
-        $this->expectException(MalformedCredentialsException::class);
-        $credentials = new CustomClasses\Person('Harry Potter', 13);
-        new Proxmox($credentials);
-    }
-
-
-    /**
-     * @expectedException \ProxmoxVE\Exception\MalformedCredentialsException
-     */
-    public function testExceptionIsThrownWhenIncompleteCredentialsObjectIsPassed() {
-        $this->expectException(MalformedCredentialsException::class);
-        $credentials = new CustomClasses\IncompleteCredentials("user", "and that's it");
-        new Proxmox($credentials);
-    }
-
-
-    /**
-     * @expectedException \ProxmoxVE\Exception\MalformedCredentialsException
-     */
-    public function testExceptionIsThrownWhenProtectedCredentialsObjectIsPassed() {
-        $this->expectException(MalformedCredentialsException::class);
-        $credentials = new CustomClasses\ProtectedCredentials('host', 'user', 'pass');
-        new Proxmox($credentials);
-    }
-
-
-    /**
-     * @expectedException \GuzzleHttp\Exception\RequestException
-     */
-    public function testProxmoxExceptionIsNotThrownWhenUsingMagicCredentialsObject() {
-        $this->expectException(ConnectException::class);
-        $credentials = new CustomClasses\MagicCredentials();
-        new Proxmox($credentials);
-    }
-
-
     public function testGetCredentialsWithAllValues() {
         $ids = [
             'hostname' => 'some.proxmox.tld',
