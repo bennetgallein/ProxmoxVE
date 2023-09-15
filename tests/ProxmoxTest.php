@@ -1,32 +1,29 @@
-<?php
+<?php declare(strict_types=1);
 /**
  * This file is part of the ProxmoxVE PHP API wrapper library (unofficial).
  *
  * @copyright 2014 César Muñoz <zzantares@gmail.com>
  * @license http://opensource.org/licenses/MIT The MIT License.
  */
-
 namespace ProxmoxVE;
+
+use GuzzleHttp\Exception\ClientException;
+use GuzzleHttp\Exception\ConnectException;
+use ProxmoxVE\Exception\MalformedCredentialsException;
 
 /**
  * @author César Muñoz <zzantares@gmail.com>
  */
-class ProxmoxTest extends TestCase
-{
-    /**
-     * @expectedException \ProxmoxVE\Exception\MalformedCredentialsException
-     */
-    public function testExceptionIsThrownIfBadParamsPassed()
-    {
+final class ProxmoxTest extends TestCase {
+
+    public function testExceptionIsThrownIfBadParamsPassed() {
+        $this->expectException(MalformedCredentialsException::class);
         new Proxmox('bad param');
     }
 
 
-    /**
-     * @expectedException \ProxmoxVE\Exception\MalformedCredentialsException
-     */
-    public function testExceptionIsThrownWhenNonAssociativeArrayIsGivenAsCredentials()
-    {
+    public function testExceptionIsThrownWhenNonAssociativeArrayIsGivenAsCredentials() {
+        $this->expectException(MalformedCredentialsException::class);
         new Proxmox([
             'root', 'So Bruce Wayne is alive? or did he died in the explosion?',
         ]);
@@ -36,8 +33,8 @@ class ProxmoxTest extends TestCase
     /**
      * @expectedException \ProxmoxVE\Exception\MalformedCredentialsException
      */
-    public function testExceptionIsThrownWhenIncompleteCredentialsArrayIsPassed()
-    {
+    public function testExceptionIsThrownWhenIncompleteCredentialsArrayIsPassed() {
+        $this->expectException(MalformedCredentialsException::class);
         new Proxmox([
             'username' => 'root',
             'password' => 'The NSA is watching us! D=',
@@ -48,8 +45,8 @@ class ProxmoxTest extends TestCase
     /**
      * @expectedException \ProxmoxVE\Exception\MalformedCredentialsException
      */
-    public function testExceptionIsThrownWhenWrongCredentialsObjectIsPassed()
-    {
+    public function testExceptionIsThrownWhenWrongCredentialsObjectIsPassed() {
+        $this->expectException(MalformedCredentialsException::class);
         $credentials = new CustomClasses\Person('Harry Potter', 13);
         new Proxmox($credentials);
     }
@@ -58,8 +55,8 @@ class ProxmoxTest extends TestCase
     /**
      * @expectedException \ProxmoxVE\Exception\MalformedCredentialsException
      */
-    public function testExceptionIsThrownWhenIncompleteCredentialsObjectIsPassed()
-    {
+    public function testExceptionIsThrownWhenIncompleteCredentialsObjectIsPassed() {
+        $this->expectException(MalformedCredentialsException::class);
         $credentials = new CustomClasses\IncompleteCredentials("user", "and that's it");
         new Proxmox($credentials);
     }
@@ -68,8 +65,8 @@ class ProxmoxTest extends TestCase
     /**
      * @expectedException \ProxmoxVE\Exception\MalformedCredentialsException
      */
-    public function testExceptionIsThrownWhenProtectedCredentialsObjectIsPassed()
-    {
+    public function testExceptionIsThrownWhenProtectedCredentialsObjectIsPassed() {
+        $this->expectException(MalformedCredentialsException::class);
         $credentials = new CustomClasses\ProtectedCredentials('host', 'user', 'pass');
         new Proxmox($credentials);
     }
@@ -78,15 +75,14 @@ class ProxmoxTest extends TestCase
     /**
      * @expectedException \GuzzleHttp\Exception\RequestException
      */
-    public function testProxmoxExceptionIsNotThrownWhenUsingMagicCredentialsObject()
-    {
+    public function testProxmoxExceptionIsNotThrownWhenUsingMagicCredentialsObject() {
+        $this->expectException(ConnectException::class);
         $credentials = new CustomClasses\MagicCredentials();
         new Proxmox($credentials);
     }
 
 
-    public function testGetCredentialsWithAllValues()
-    {
+    public function testGetCredentialsWithAllValues() {
         $ids = [
             'hostname' => 'some.proxmox.tld',
             'username' => 'root',
@@ -94,7 +90,7 @@ class ProxmoxTest extends TestCase
         ];
 
         $fakeAuthToken = new AuthToken('csrf', 'ticket', 'username');
-        $proxmox = $this->getMockProxmox('login', $fakeAuthToken);
+        $proxmox       = $this->getMockProxmox('login', $fakeAuthToken);
         $proxmox->setCredentials($ids);
 
         $credentials = $proxmox->getCredentials();
@@ -108,17 +104,16 @@ class ProxmoxTest extends TestCase
     }
 
 
-    public function testCredentialsWithMailGatewaySystem()
-    {
+    public function testCredentialsWithMailGatewaySystem() {
         $ids = [
             'hostname' => 'some.proxmox.tld',
             'username' => 'root',
             'password' => 'I was here',
-            'system' => 'pmg',
+            'system'   => 'pmg',
         ];
 
         $fakeAuthToken = new AuthToken('csrf', 'ticket', 'username');
-        $proxmox = $this->getMockProxmox('login', $fakeAuthToken);
+        $proxmox       = $this->getMockProxmox('login', $fakeAuthToken);
         $proxmox->setCredentials($ids);
 
         $credentials = $proxmox->getCredentials();
@@ -126,12 +121,29 @@ class ProxmoxTest extends TestCase
         $this->assertEquals($credentials->getSystem(), 'pmg');
     }
 
+    public function testCredentialsWithBackupServerSystem() {
+        $ids = [
+            'hostname' => 'some.proxmox.tld',
+            'username' => 'root',
+            'password' => 'I was here',
+            'system'   => 'pbs',
+        ];
+
+        $fakeAuthToken = new AuthToken('csrf', 'ticket', 'username');
+        $proxmox       = $this->getMockProxmox('login', $fakeAuthToken);
+        $proxmox->setCredentials($ids);
+
+        $credentials = $proxmox->getCredentials();
+
+        $this->assertEquals($credentials->getSystem(), 'pbs');
+    }
+
 
     /**
      * @expectedException \Exception
      */
-    public function testUnresolvedHostnameThrowsException()
-    {
+    public function testUnresolvedHostnameThrowsException() {
+        $this->expectException(\Exception::class);
         $credentials = [
             'hostname' => 'proxmox.example.tld',
             'username' => 'user',
@@ -142,11 +154,9 @@ class ProxmoxTest extends TestCase
     }
 
 
-    /**
-     * @expectedException \ProxmoxVE\Exception\AuthenticationException
-     */
-    public function testLoginErrorThrowsException()
-    {
+    public function testLoginErrorThrowsException() {
+        $this->expectException(ClientException::class);
+
         $credentials = [
             'hostname' => 'proxmox.server.tld',
             'username' => 'are not',
@@ -159,8 +169,7 @@ class ProxmoxTest extends TestCase
     }
 
 
-    public function testGetAndSetResponseType()
-    {
+    public function testGetAndSetResponseType() {
         $proxmox = $this->getProxmox(null);
         $this->assertEquals($proxmox->getResponseType(), 'array');
 
@@ -193,8 +202,8 @@ class ProxmoxTest extends TestCase
     /**
      * @expectedException \InvalidArgumentException
      */
-    public function testGetResourceWithBadParamsThrowsException()
-    {
+    public function testGetResourceWithBadParamsThrowsException() {
+        $this->expectException(\InvalidArgumentException::class);
         $proxmox = $this->getProxmox(null);
         $proxmox->get('/someResource', 'wrong params here');
     }
@@ -203,8 +212,8 @@ class ProxmoxTest extends TestCase
     /**
      * @expectedException \InvalidArgumentException
      */
-    public function testCreateResourceWithBadParamsThrowsException()
-    {
+    public function testCreateResourceWithBadParamsThrowsException() {
+        $this->expectException(\InvalidArgumentException::class);
         $proxmox = $this->getProxmox(null);
         $proxmox->create('/someResource', 'wrong params here');
     }
@@ -213,8 +222,8 @@ class ProxmoxTest extends TestCase
     /**
      * @expectedException \InvalidArgumentException
      */
-    public function testSetResourceWithBadParamsThrowsException()
-    {
+    public function testSetResourceWithBadParamsThrowsException() {
+        $this->expectException(\InvalidArgumentException::class);
         $proxmox = $this->getProxmox(null);
         $proxmox->set('/someResource', 'wrong params here');
     }
@@ -223,19 +232,18 @@ class ProxmoxTest extends TestCase
     /**
      * @expectedException \InvalidArgumentException
      */
-    public function testDeleteResourceWithBadParamsThrowsException()
-    {
+    public function testDeleteResourceWithBadParamsThrowsException() {
+        $this->expectException(\InvalidArgumentException::class);
         $proxmox = $this->getProxmox(null);
         $proxmox->delete('/someResource', 'wrong params here');
     }
 
 
-    public function testGetResource()
-    {
+    public function testGetResource() {
         $fakeResponse = <<<'EOD'
 {"data":[{"disk":940244992,"cpu":0.000998615325210486,"maxdisk":5284429824,"maxmem":1038385152,"node":"office","maxcpu":1,"level":"","uptime":3296027,"id":"node/office","type":"node","mem":311635968}]}
 EOD;
-        $proxmox = $this->getProxmox($fakeResponse);
+        $proxmox      = $this->getProxmox($fakeResponse);
 
         $this->assertEquals($proxmox->get('/nodes'), json_decode($fakeResponse, true));
     }

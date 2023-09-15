@@ -5,3 +5,4 @@ composer.lock
 atlassian-ide-plugin.xml
 ocular.phar
 .reports/
+.phpunit.result.cache
