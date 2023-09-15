@@ -1,17 +1,12 @@
 ProxmoxVE API Client
 ====================
 
-This **PHP 5.5+** library allows you to interact with your Proxmox server via API.
+This **PHP 8+** library allows you to interact with your Proxmox server via API.
 
-[![Build Status](https://travis-ci.org/ZzAntares/ProxmoxVE.svg?branch=master)](https://travis-ci.org/ZzAntares/ProxmoxVE)
 [![Latest Stable Version](https://poser.pugx.org/zzantares/proxmoxve/v/stable.svg)](https://packagist.org/packages/zzantares/proxmoxve)
 [![Total Downloads](https://poser.pugx.org/zzantares/proxmoxve/downloads.svg)](https://packagist.org/packages/zzantares/proxmoxve)
 [![Latest Unstable Version](https://poser.pugx.org/zzantares/proxmoxve/v/unstable.svg)](https://packagist.org/packages/zzantares/proxmoxve)
 [![License](https://poser.pugx.org/zzantares/proxmoxve/license.svg)](https://packagist.org/packages/zzantares/proxmoxve)
-
-> I'm not actively maintaining this library anymore (I've left PHP behind) but **the API is pretty stable**, if it doesn't suit your needs take a look at the forks or better yet create a PR to add the things you're missing, if you're interested I can transfer the project to you.
-
-**Looking for a PHP 5.3 library version?** Search through the [releases](https://github.com/ZzAntares/ProxmoxVE/releases) one that fits your needs, I recommend using the [2.1.1](https://github.com/ZzAntares/ProxmoxVE/releases/tag/v2.1.1) version.
 
 
 Installation
@@ -22,7 +17,7 @@ Recommended installation is using [Composer], if you do not have [Composer] what
 In the root of your project execute the following:
 
 ```sh
-$ composer require bennetgallein/proxmoxve ~4.0
+$ composer require bennetgallein/proxmoxve ~v5.0
 ```
 
 Or add this to your `composer.json` file:
@@ -30,7 +25,7 @@ Or add this to your `composer.json` file:
 ```json
 {
     "require": {
-        "bennetgallein/proxmoxve": "~4.0"
+        "bennetgallein/proxmoxve": "~v5.0"
     }
 }
 ```
@@ -68,6 +63,13 @@ $credentials = [
     'realm' => 'pve',
     'port' => '9009',
 ];
+
+// you can also specify token-id and token-secret to use API tokens. They will be preffered over normal username/password
+$credentials = [
+    'hostname' => 'proxmox.server.com',
+    'token-id' => 'root@pam!prod',
+    'token-secret' => 'a806bdd1-de9a-4860-9ce0-bc427d3f2067'
+]
 
 // Then simply pass your credentials when creating the API client object.
 $proxmox = new Proxmox($credentials);
