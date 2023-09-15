@@ -22,7 +22,7 @@ Recommended installation is using [Composer], if you do not have [Composer] what
 In the root of your project execute the following:
 
 ```sh
-$ composer require zzantares/proxmoxve ~4.0
+$ composer require bennetgallein/proxmoxve ~4.0
 ```
 
 Or add this to your `composer.json` file:
@@ -30,7 +30,7 @@ Or add this to your `composer.json` file:
 ```json
 {
     "require": {
-        "zzantares/proxmoxve": "~4.0"
+        "bennetgallein/proxmoxve": "~4.0"
     }
 }
 ```
@@ -118,6 +118,24 @@ $credentials = [
     'username' => 'root',
     'password' => 'secret',
     'system' => 'pmg', // Defaults to 'pve' for the PVE API. Use 'pmg' for the PMG API.
+];
+
+```
+
+```
+Using the backup Server API
+-------------------------
+
+This library can be used to communicate with the [Proxmox Backup Server API](https://pbs.proxmox.com/docs/api-viewer/index.html) as well, by simply changing the `system` entry in the credentials array.
+
+```php
+<?php
+
+$credentials = [
+    'hostname' => 'proxmox.server.com',  // Also can be an IP
+    'username' => 'root',
+    'password' => 'secret',
+    'system' => 'pbs', // Defaults to 'pve' for the PVE API. Use 'pbs' for the PBS API.
 ];
 
 ```
