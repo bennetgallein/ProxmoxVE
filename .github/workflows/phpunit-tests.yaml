@@ -3,7 +3,7 @@ name: phpunit tests
 on:
   pull_request:
     branches:
-      - main
+      - master
 
 jobs:
   build-test:
