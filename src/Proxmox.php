@@ -11,7 +11,6 @@ namespace ProxmoxVE;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Cookie\CookieJar;
-use GuzzleHttp\Psr7\Request;
 
 use ProxmoxVE\Exception\AuthenticationException;
 use ProxmoxVE\Exception\BadResponseException;
@@ -22,8 +21,7 @@ use ProxmoxVE\Exception\BadResponseException;
  *
  * @author César Muñoz <zzantares@gmail.com>
  */
-class Proxmox
-{
+class Proxmox {
     /**
      * @var \GuzzleHttp\Client()
      */
@@ -105,33 +103,41 @@ class Proxmox
      * @throws \InvalidArgumentException If the given HTTP method is not one of
      *                                   'GET', 'POST', 'PUT', 'DELETE',
      */
-    private function requestResource($actionPath, $params = [], $method = 'GET')
-    {
+    private function requestResource($actionPath, $params = [], $method = 'GET') {
         $url = $this->getApiUrl() . $actionPath;
 
-        $cookies = CookieJar::fromArray([
-            $this->getCookieName() => $this->authToken->getTicket(),
-        ], $this->credentials->getHostname());
+        if ($this->credentials->isUsingApiKeys()) {
+            $headers = [
+                'Authorization' => $this->credentials->getToken()
+                // no need for CSRF token when using API Tokens
+            ];
+        } else {
+            $cookies = CookieJar::fromArray([
+                $this->getCookieName() => $this->authToken->getTicket(),
+            ], $this->credentials->getHostname());
+
+            $headers = [
+                'CSRFPreventionToken' => $this->authToken->getCsrf(),
+            ];
+        }
 
         switch ($method) {
             case 'GET':
                 return $this->httpClient->get($url, [
-                    'verify' => false,
+                    'verify'     => false,
                     'exceptions' => false,
-                    'cookies' => $cookies,
-                    'query' => $params,
+                    'cookies'    => $cookies ?? [],
+                    'query'      => $params,
+                    'headers'    => $headers
                 ]);
             case 'POST':
             case 'PUT':
             case 'DELETE':
-                $headers = [
-                    'CSRFPreventionToken' => $this->authToken->getCsrf(),
-                ];
                 return $this->httpClient->request($method, $url, [
-                    'verify' => false,
-                    'exceptions' => false,
-                    'cookies' => $cookies,
-                    'headers' => $headers,
+                    'verify'      => false,
+                    'exceptions'  => false,
+                    'cookies'     => $cookies ?? [],
+                    'headers'     => $headers,
                     'form_params' => $params,
                 ]);
             default:
@@ -149,8 +155,7 @@ class Proxmox
      * @return mixed The parsed response, depending on the response type can be
      *               an array or a string.
      */
-    private function processHttpResponse($response)
-    {
+    private function processHttpResponse($response) {
         if ($response === null) {
             return null;
         }
@@ -177,16 +182,12 @@ class Proxmox
      *
      * @return string The required cookie for the system being used
      */
-    private function getCookieName()
-    {
-        switch ($this->credentials->getSystem()) {
-            default:
-            case 'pve': $cookiename = 'PVEAuthCookie'; break;
-            case 'pmg': $cookiename = 'PMGAuthCookie'; break;
-            case 'pbs': $cookiename = 'PBSAuthCookie'; break;
-        }
-
-        return $cookiename;
+    private function getCookieName() {
+        return match ($this->credentials->getSystem()) {
+            'pmg' => "PMGAuthCookie",
+            'pbs' => "PBSAuthCookie",
+            default => 'PVEAuthCookie'
+        };
     }
 
 
@@ -196,8 +197,7 @@ class Proxmox
      *
      * @param \GuzzleHttp\Client $httpClient the client to be used
      */
-    public function setHttpClient($httpClient = null)
-    {
+    public function setHttpClient($httpClient = null) {
         $this->httpClient = $httpClient ?: new Client();
     }
 
@@ -211,21 +211,20 @@ class Proxmox
      *
      * @throws \ProxmoxVE\Exception\AuthenticationException If login fails.
      */
-    public function login()
-    {
+    public function login() {
         $loginUrl = $this->credentials->getApiUrl() . '/json/access/ticket';
         $response = $this->httpClient->post($loginUrl, [
-            'verify' => false,
-            'exceptions' => false,
+            'verify'      => false,
+            'exceptions'  => false,
             'form_params' => [
                 'username' => $this->credentials->getUsername(),
                 'password' => $this->credentials->getPassword(),
-                'realm' => $this->credentials->getRealm(),
+                'realm'    => $this->credentials->getRealm(),
             ],
         ]);
 
         $json = json_decode($response->getBody(), true);
-
+        var_dump($json);
         if (!$json['data']) {
             $error = 'Can not login using the provided credentials';
             throw new AuthenticationException($error);
@@ -245,8 +244,7 @@ class Proxmox
      * @return \ProxmoxVE\Credentials Object containing all proxmox data used to
      *                                connect to the server.
      */
-    public function getCredentials()
-    {
+    public function getCredentials() {
         return $this->credentials;
     }
 
@@ -254,19 +252,20 @@ class Proxmox
     /**
      * Assign the passed Credentials object to the ProxmoxVE.
      *
-     * @param object $credentials A custom object holding credentials or a
+     * @param \ProxmoxVE\Credentials|array $credentials A custom object holding credentials or a
      *                            Credentials object to assign.
      *
      * @throws \ProxmoxVE\Exception\AuthenticationException If can not login.
      */
-    public function setCredentials($credentials)
-    {
+    public function setCredentials($credentials) {
         if (!$credentials instanceof Credentials) {
             $credentials = new Credentials($credentials);
         }
 
         $this->credentials = $credentials;
-        $this->authToken = $this->login();
+        if (!$this->credentials->isUsingApiKeys()) {
+            $this->authToken = $this->login();
+        }
     }
 
 
@@ -275,12 +274,11 @@ class Proxmox
      *
      * @param string $responseType One of json, html, extjs, text, png.
      */
-    public function setResponseType($responseType = 'array')
-    {
+    public function setResponseType($responseType = 'array') {
         $supportedFormats = array('json', 'html', 'extjs', 'text', 'png');
 
         if (in_array($responseType, $supportedFormats)) {
-            $this->fakeType = false;
+            $this->fakeType     = false;
             $this->responseType = $responseType;
         } else {
             switch ($responseType) {
@@ -306,8 +304,7 @@ class Proxmox
      *
      * @return string Response type being used.
      */
-    public function getResponseType()
-    {
+    public function getResponseType() {
         return $this->fakeType ?: $this->responseType;
     }
 
@@ -323,8 +320,7 @@ class Proxmox
      *
      * @throws \InvalidArgumentException If given params are not an array.
      */
-    public function get($actionPath, $params = [])
-    {
+    public function get($actionPath, $params = []) {
         if (!is_array($params)) {
             $errorMessage = 'GET params should be an associative array.';
             throw new \InvalidArgumentException($errorMessage);
@@ -351,8 +347,7 @@ class Proxmox
      *
      * @throws \InvalidArgumentException If given params are not an array.
      */
-    public function set($actionPath, $params = [])
-    {
+    public function set($actionPath, $params = []) {
         if (!is_array($params)) {
             $errorMessage = 'PUT params should be an associative array.';
             throw new \InvalidArgumentException($errorMessage);
@@ -379,8 +374,7 @@ class Proxmox
      *
      * @throws \InvalidArgumentException If given params are not an array.
      */
-    public function create($actionPath, $params = [])
-    {
+    public function create($actionPath, $params = []) {
         if (!is_array($params)) {
             $errorMessage = 'POST params should be an asociative array.';
             throw new \InvalidArgumentException($errorMessage);
@@ -407,8 +401,7 @@ class Proxmox
      *
      * @throws \InvalidArgumentException If given params are not an array.
      */
-    public function delete($actionPath, $params = [])
-    {
+    public function delete($actionPath, $params = []) {
         if (!is_array($params)) {
             $errorMessage = 'DELETE params should be an associative array.';
             throw new \InvalidArgumentException($errorMessage);
@@ -433,8 +426,7 @@ class Proxmox
      *
      * @return string Proxmox API URL.
      */
-    public function getApiUrl()
-    {
+    public function getApiUrl() {
         return $this->credentials->getApiUrl() . '/' . $this->responseType;
     }
 
@@ -444,8 +436,7 @@ class Proxmox
      *
      * @return mixed The processed response, can be an array, string or object.
      */
-    public function getAccess()
-    {
+    public function getAccess() {
         return $this->get('/access');
     }
 
@@ -455,8 +446,7 @@ class Proxmox
      *
      * @return mixed The processed response, can be an array, string or object.
      */
-    public function getCluster()
-    {
+    public function getCluster() {
         return $this->get('/cluster');
     }
 
@@ -466,8 +456,7 @@ class Proxmox
      *
      * @return mixed The processed response, can be an array, string or object.
      */
-    public function getNodes()
-    {
+    public function getNodes() {
         return $this->get('/nodes');
     }
 
@@ -477,8 +466,7 @@ class Proxmox
      *
      * @return mixed The processed response, can be an array, string or object.
      */
-    public function getPools()
-    {
+    public function getPools() {
         return $this->get('/pools');
     }
 
@@ -490,8 +478,7 @@ class Proxmox
      *
      * @return mixed The processed response, can be an array, string or object.
      */
-    public function createPool($poolData)
-    {
+    public function createPool($poolData) {
         if (!is_array($poolData)) {
             throw new \InvalidArgumentException('Pool data needs to be array');
         }
@@ -508,8 +495,7 @@ class Proxmox
      *
      * @return mixed The processed response, can be an array, string or object.
      */
-    public function getStorages($type = null)
-    {
+    public function getStorages($type = null) {
         if ($type === null) {
             return $this->get('/storage');
         }
@@ -544,8 +530,7 @@ class Proxmox
      *
      * @return mixed The processed response, can be an array, string or object.
      */
-    public function createStorage($storageData)
-    {
+    public function createStorage($storageData) {
         if (!is_array($storageData)) {
             $errorMessage = 'Storage data needs to be array';
             throw new \InvalidArgumentException($errorMessage);
@@ -562,8 +547,7 @@ class Proxmox
      *
      * @return mixed The processed response, can be an array, string or object.
      */
-    public function getVersion()
-    {
+    public function getVersion() {
         return $this->get('/version');
     }
 }

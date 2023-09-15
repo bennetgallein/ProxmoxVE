@@ -17,8 +17,7 @@ use ProxmoxVE\Exception\MalformedCredentialsException;
  *
  * @author César Muñoz <zzantares@gmail.com>
  */
-class Credentials
-{
+class Credentials {
     /**
      * @var string The Proxmox hostname (or IP address) to connect to.
      */
@@ -50,27 +49,53 @@ class Credentials
     private $system;
 
     /**
+     * the ID of the Token, in the <USER>@<REALM>!<NAME> Format
+     *
+     * @var string 
+     */
+    private $tokenId;
+
+    /**
+     * the secret of the token
+     *
+     * @var string
+     */
+    private $tokenSecret;
+
+    /**
+     * boolean if the connector should use the api keys to communicate with proxmox
+     *
+     * @var boolean
+     */
+    private $isUsingApi = false;
+
+    /**
      * Construct.
      *
      * @param array|object $credentials This needs to have 'hostname',
      *                                  'username' and 'password' defined.
      */
-    public function __construct($credentials)
-    {
+    public function __construct($credentials) {
         // Get credentials object in valid array form
         $credentials = $this->parseCustomCredentials($credentials);
 
         if (!$credentials) {
-            $error = 'PVE API needs a credentials object or an array.';
-            throw new MalformedCredentialsException($error);
+            throw new MalformedCredentialsException('PVE API needs a credentials array.');
         }
 
-        $this->hostname = $credentials['hostname'];
-        $this->username = $credentials['username'];
-        $this->password = $credentials['password'];
-        $this->realm = $credentials['realm'];
-        $this->port = $credentials['port'];
-        $this->system = $credentials['system'];
+        $this->hostname    = $credentials['hostname'];
+        $this->username    = $credentials['username'];
+        $this->password    = $credentials['password'];
+        $this->realm       = $credentials['realm'];
+        $this->port        = $credentials['port'];
+        $this->system      = $credentials['system'];
+        $this->tokenId     = $credentials['token-id'];
+        $this->tokenSecret = $credentials['token-secret'];
+
+        // we prioritize API keys over default authentication
+        if ($this->tokenId && $this->tokenSecret) {
+            $this->isUsingApi = true;
+        }
     }
 
 
@@ -79,8 +104,7 @@ class Credentials
      *
      * @return string Credentials data in a single string.
      */
-    public function __toString()
-    {
+    public function __toString() {
         return sprintf(
             '[Host: %s:%s], [Username: %s@%s].',
             $this->hostname,
@@ -96,8 +120,7 @@ class Credentials
      *
      * @return string The proxmox API URL.
      */
-    public function getApiUrl()
-    {
+    public function getApiUrl() {
         return 'https://' . $this->hostname . ':' . $this->port . '/api2';
     }
 
@@ -107,8 +130,7 @@ class Credentials
      *
      * @return string The hostname in the credentials.
      */
-    public function getHostname()
-    {
+    public function getHostname() {
         return $this->hostname;
     }
 
@@ -118,8 +140,7 @@ class Credentials
      *
      * @return string The username in the credentials.
      */
-    public function getUsername()
-    {
+    public function getUsername() {
         return $this->username;
     }
 
@@ -129,8 +150,7 @@ class Credentials
      *
      * @return string The password in the credentials.
      */
-    public function getPassword()
-    {
+    public function getPassword() {
         return $this->password;
     }
 
@@ -140,8 +160,7 @@ class Credentials
      *
      * @return string The realm in this credentials.
      */
-    public function getRealm()
-    {
+    public function getRealm() {
         return $this->realm;
     }
 
@@ -151,8 +170,7 @@ class Credentials
      *
      * @return string The port in the credentials.
      */
-    public function getPort()
-    {
+    public function getPort() {
         return $this->port;
     }
 
@@ -162,9 +180,26 @@ class Credentials
      *
      * @return string The port in the credentials.
      */
-    public function getSystem()
-    {
+    public function getSystem() {
         return $this->system;
+    }
+
+    /**
+     * return wether api keys are used for authentication or not.
+     *
+     * @return boolean
+     */
+    public function isUsingApiKeys() {
+        return $this->isUsingApi;
+    }
+
+    public function getToken() {
+        $name = match ($this->system) {
+            'pbs' => "PBSAPIToken",
+            default => "PVEAPIToken"
+        };
+
+        return $name . "=" . $this->tokenId . "=" . $this->tokenSecret;
     }
 
 
@@ -180,115 +215,32 @@ class Credentials
      *                    associative array, returns null if object can not be
      *                    used as a credentials provider.
      */
-    public function parseCustomCredentials($credentials)
-    {
+    public function parseCustomCredentials($credentials) {
         if (is_array($credentials)) {
-            $requiredKeys = ['hostname', 'username', 'password'];
+            $requiredKeys    = ['hostname', 'username', 'password'];
+            $requiredApiKeys = ['hostname', 'token-id', 'token-secret'];
             $credentialsKeys = array_keys($credentials);
 
-            $found = count(array_intersect($requiredKeys, $credentialsKeys));
 
-            if ($found != count($requiredKeys)) {
+            $found    = count(array_intersect($requiredKeys, $credentialsKeys));
+            $foundApi = count(array_intersect($requiredApiKeys, $credentialsKeys));
+
+            if ($found != count($requiredKeys) && $foundApi != count($requiredApiKeys)) {
                 return null;
             }
 
-            // Set default realm and port if are not in the array.
-            if (!isset($credentials['realm'])) {
-                $credentials['realm'] = 'pam';
-            }
-
-            if (!isset($credentials['port'])) {
-                $credentials['port'] = '8006';
-            }
-
-            if (!isset($credentials['system'])) {
-                $credentials['system'] = 'pve';
-            }
-
-            return $credentials;
-        }
-
-        if (!is_object($credentials)) {
-            return null;
-        }
-
-        // Trying to find variables
-        $objectProperties = array_keys(get_object_vars($credentials));
-        $requiredProperties = ['hostname', 'username', 'password'];
-
-        // Needed properties exists in the object?
-        $found = count(array_intersect($requiredProperties, $objectProperties));
-        if ($found == count($requiredProperties)) {
-            $realm = in_array('realm', $objectProperties)
-                ? $credentials->realm
-                : 'pam';
-
-            $port = in_array('port', $objectProperties)
-                ? $credentials->port
-                : '8006';
-
-            $system = in_array('system', $objectProperties)
-                ? $credentials->system
-                : 'pve';
+            // set defaults
 
             return [
-                'hostname' => $credentials->hostname,
-                'username' => $credentials->username,
-                'password' => $credentials->password,
-                'realm' => $realm,
-                'port' => $port,
-                'system' => $system,
+                'hostname'     => $credentials['hostname'] ?? '',
+                'username'     => $credentials['username'] ?? '',
+                'password'     => $credentials['password'] ?? '',
+                'realm'        => $credentials['realm'] ?? 'pam',
+                'port'         => $credentials['port'] ?? '8006',
+                'system'       => $credentials['system'] ?? 'pve',
+                'token-id'     => $credentials['token-id'] ?? '',
+                'token-secret' => $credentials['token-secret'] ?? '',
             ];
         }
-
-
-        // Trying to find getters
-        $objectMethods = get_class_methods($credentials);
-        $requiredMethods = ['getHostname', 'getUsername', 'getPassword'];
-
-        // Needed functions exists in the object?
-        $found = count(array_intersect($requiredMethods, $objectMethods));
-        if ($found == count($requiredMethods)) {
-            $realm = method_exists($credentials, 'getRealm')
-                ? $credentials->getRealm()
-                : 'pam';
-
-            $port = method_exists($credentials, 'getPort')
-                ? $credentials->getPort()
-                : '8006';
-
-            $system = method_exists($credentials, 'getSystem')
-                ? $credentials->getSystem()
-                : 'pve';
-
-            return [
-                'hostname' => $credentials->getHostname(),
-                'username' => $credentials->getUsername(),
-                'password' => $credentials->getPassword(),
-                'realm' => $realm,
-                'port' => $port,
-                'system' => $system,
-            ];
-        }
-
-        // Get properties of object using magic method __get
-        if (in_array('__get', $objectMethods)) {
-            $hasHostname = $credentials->hostname;
-            $hasUsername = $credentials->username;
-            $hasPassword = $credentials->password;
-
-            if ($hasHostname and $hasUsername and $hasPassword) {
-                return [
-                    'hostname' => $credentials->hostname,
-                    'username' => $credentials->username,
-                    'password' => $credentials->password,
-                    'realm' => $credentials->realm ?: 'pam',
-                    'port' => $credentials->port ?: '8006',
-                    'system' => $credentials->system ?: 'pve',
-                ];
-            }
-        }
-
-        return null;
     }
 }
