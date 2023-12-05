@@ -20,7 +20,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GH_TOKEN }}
 
       - name: Set Node.js 20.x
         uses: actions/setup-node@v3
@@ -42,4 +42,4 @@ jobs:
       - name: Tag Version
         run: ./node_modules/semantic-release/bin/semantic-release.js --no-ci
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
