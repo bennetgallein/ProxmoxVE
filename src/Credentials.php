@@ -79,21 +79,28 @@ class Credentials {
         // Get credentials object in valid array form
         $credentials = $this->parseCustomCredentials($credentials);
 
-        if (!$credentials) {
+        if(!$credentials) {
             throw new MalformedCredentialsException('PVE API needs a credentials array.');
         }
 
-        $this->hostname    = $credentials['hostname'];
+        if(strpos($credentials['hostname'], ':') !== false) {
+            [$host, $port]  = explode(':', $credentials['hostname']);
+            $this->hostname = $host;
+            $this->port     = $port;
+        } else {
+            $this->hostname = $credentials['hostname'];
+            $this->port     = $credentials['port'];
+        }
+
         $this->username    = $credentials['username'];
         $this->password    = $credentials['password'];
         $this->realm       = $credentials['realm'];
-        $this->port        = $credentials['port'];
         $this->system      = $credentials['system'];
         $this->tokenId     = $credentials['token-id'];
         $this->tokenSecret = $credentials['token-secret'];
 
         // we prioritize API keys over default authentication
-        if ($this->tokenId && $this->tokenSecret) {
+        if($this->tokenId && $this->tokenSecret) {
             $this->isUsingApi = true;
         }
     }
@@ -121,7 +128,7 @@ class Credentials {
      * @return string The proxmox API URL.
      */
     public function getApiUrl() {
-        return 'https://' . $this->hostname . ':' . $this->port . '/api2';
+        return 'https://'.$this->hostname.':'.$this->port.'/api2';
     }
 
 
@@ -199,7 +206,7 @@ class Credentials {
             default => "PVEAPIToken"
         };
 
-        return $name . "=" . $this->tokenId . "=" . $this->tokenSecret;
+        return $name."=".$this->tokenId."=".$this->tokenSecret;
     }
 
 
@@ -216,7 +223,7 @@ class Credentials {
      *                    used as a credentials provider.
      */
     public function parseCustomCredentials($credentials) {
-        if (is_array($credentials)) {
+        if(is_array($credentials)) {
             $requiredKeys    = ['hostname', 'username', 'password'];
             $requiredApiKeys = ['hostname', 'token-id', 'token-secret'];
             $credentialsKeys = array_keys($credentials);
@@ -225,7 +232,7 @@ class Credentials {
             $found    = count(array_intersect($requiredKeys, $credentialsKeys));
             $foundApi = count(array_intersect($requiredApiKeys, $credentialsKeys));
 
-            if ($found != count($requiredKeys) && $foundApi != count($requiredApiKeys)) {
+            if($found != count($requiredKeys) && $foundApi != count($requiredApiKeys)) {
                 return null;
             }
 
