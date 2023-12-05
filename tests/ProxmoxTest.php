@@ -128,6 +128,16 @@ final class ProxmoxTest extends TestCase {
         new Proxmox($credentials, null, $httpClient);
     }
 
+    public function testSetupWithPortInHost() {
+        $credentials = [
+            'hostname' => 'proxmox.server.tld:443',
+            'username' => 'wu',
+            'password' => 'tang'
+        ];
+        $creds       = new Credentials($credentials);
+        $this->assertEquals($creds->getPort(), '443');
+    }
+
 
     public function testGetAndSetResponseType() {
         $proxmox = $this->getProxmox(null);

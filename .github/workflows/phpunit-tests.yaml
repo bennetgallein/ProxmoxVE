@@ -8,9 +8,17 @@ on:
 jobs:
   build-test:
     runs-on: ubuntu-latest
-
+    strategy:
+      matrix:
+        version: ["7.1", "7.2", "7.3", "7.4", "8.0", "8.1", "8.2", "8.3", "latest"]
     steps:
       - uses: actions/checkout@v3
+      - name: Cache Composer dependencies
+        uses: actions/cache@v3
+        with:
+          path: /tmp/composer-cache
+          key: ${{ runner.os }}-${{ hashFiles('**/composer.lock') }}
       - uses: php-actions/composer@v6
-      - run: echo "Composer dependencies have been installed"
+        with:
+          php_version: ${{ matrix.version }}
       - run: vendor/bin/phpunit
