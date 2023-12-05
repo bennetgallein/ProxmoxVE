@@ -1,0 +1,58 @@
+{
+  "dependencies": {
+    "@ambimax/semantic-release-composer": "github:ambimax/semantic-release-composer",
+    "@commitlint/cli": "^18.4.3",
+    "@semantic-release/changelog": "github:semantic-release/changelog",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/github": "github:semantic-release/github",
+    "@semantic-release/npm": "github:semantic-release/npm",
+    "@semantic-release/release-notes-generator": "github:semantic-release/release-notes-generator",
+    "commitizen": "^4.3.0",
+    "cz-conventional-changelog": "^3.3.0",
+    "semantic-release": "^22.0.9"
+  },
+  "scripts": {
+    "cm": "git cz"
+  },
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/cz-conventional-changelog"
+    }
+  },
+  "release": {
+    "branches": [
+      "main"
+    ],
+    "tagFormat": "${version}",
+    "plugins": [
+      "@semantic-release/release-notes-generator",
+      "@semantic-release/changelog",
+      "@ambimax/semantic-release-composer",
+      [
+        "@semantic-release/npm",
+        {
+          "npmPublish": false
+        }
+      ],
+      [
+        "@semantic-release/git",
+        {
+          "assets": [
+            "CHANGELOG.md",
+            "package.json",
+            "yarn.lock",
+            "composer.json",
+            "composer.lock"
+          ],
+          "message": "chore(release): v${nextRelease.version} [release]"
+        }
+      ],
+      "@semantic-release/github"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bennetgallein/ProxmoxVE.git"
+  },
+  "name": "some-repo"
+}

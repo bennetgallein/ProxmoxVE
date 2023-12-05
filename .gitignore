@@ -6,3 +6,4 @@ atlassian-ide-plugin.xml
 ocular.phar
 .reports/
 .phpunit.result.cache
+node_modules
