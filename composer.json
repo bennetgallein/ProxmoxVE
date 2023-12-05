@@ -2,10 +2,15 @@
     "name": "bennetgallein/proxmoxve",
     "type": "library",
     "description": "A simple PHP 8+ Proxmox API client.",
-    "keywords": ["Proxmox", "API", "KVM", "OpenVZ", "Virtualization"],
+    "keywords": [
+        "Proxmox",
+        "API",
+        "KVM",
+        "OpenVZ",
+        "Virtualization"
+    ],
     "homepage": "https://github.com/ZzAntares/ProxmoxVE",
     "license": "MIT",
-
     "authors": [
         {
             "name": "César Muñoz",
@@ -18,26 +23,22 @@
             "role": "Developer"
         }
     ],
-
     "support": {
         "issues": "https://github.com/bennetgallein/ProxmoxVE/issues",
         "source": "https://github.com/bennetgallein/ProxmoxVE"
     },
-
     "require": {
         "php": ">=8.0",
         "lib-curl": "*",
         "guzzlehttp/guzzle": "~7.0"
     },
-
     "require-dev": {
         "phpunit/phpunit": "~9.0"
     },
-
     "autoload": {
         "psr-4": {
             "ProxmoxVE\\": "src/"
         }
-    }
-
+    },
+    "version": "5.1.0"
 }
